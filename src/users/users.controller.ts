@@ -19,7 +19,6 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Express } from 'express';
 import type { Multer } from 'multer';
-import { UploadProfileImageDto } from './dto/upload-profile-image.dto';
 
 @Controller('users')
 export class UsersController {

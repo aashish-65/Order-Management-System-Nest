@@ -75,7 +75,6 @@ export class ProductsService {
       return newProductImage;
     });
 
-    console.log(productImageEntities);
     await this.productImageRepository.save(productImageEntities);
     return { message: 'Image uploaded successfully.' };
   }
