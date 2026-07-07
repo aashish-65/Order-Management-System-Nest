@@ -7,10 +7,16 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  UploadedFiles,
+  ParseFilePipe,
+  UseInterceptors,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('products')
 export class ProductsController {
@@ -43,5 +49,22 @@ export class ProductsController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.productsService.remove(id);
+  }
+
+  @Post(':id/image')
+  @UseInterceptors(FilesInterceptor('images'))
+  async uploadProductImages(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1000000 }),
+          new FileTypeValidator({ fileType: /^image\/(png|jpeg)$/ }),
+        ],
+      }),
+    )
+    images: Express.Multer.File[],
+  ) {
+    return await this.productsService.addImagesToProduct(id, images);
   }
 }

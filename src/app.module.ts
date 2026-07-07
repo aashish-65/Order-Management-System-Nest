@@ -5,23 +5,35 @@ import { UsersModule } from './users/users.module';
 import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { appConfig } from './config/app.config';
+const ENV = process.env.NODE_ENV;
 @Module({
   imports: [
     UsersModule,
     OrdersModule,
     ProductsModule,
+    ConfigModule.forRoot({
+      isGlobal: true, // this make this module acceceble to all the modules.
+      envFilePath: !ENV ? '.env' : `.env.${ENV.trim()}`, // By defult its value is .env only so not need to apply this option.
+      load: [appConfig],
+    }),
     TypeOrmModule.forRootAsync({
-      useFactory: () => ({
-        type: 'mysql',
-        host: 'localhost',
-        port: 3306,
-        username: 'root',
-        password: '',
-        database: 'order-management',
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: configService.get<any>('database.type'),
+        host: configService.get<string>('database.host'),
+        port: configService.get<number>('database.port'),
+        username: configService.get<string>('database.username'),
+        password: configService.get<string>('database.password'),
+        database: configService.get<string>('database.name'),
         // entities: [],
-        autoLoadEntities: true,
-        synchronize: true,
+        autoLoadEntities: configService.get<boolean>(
+          'database.autoLoadEntities',
+        ),
+        synchronize: configService.get<boolean>('database.synchronize'),
+        // logging: true,
       }),
     }),
   ],

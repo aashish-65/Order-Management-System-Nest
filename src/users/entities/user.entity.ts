@@ -4,10 +4,12 @@ import {
   DeleteDateColumn,
   Entity,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Order } from '../../orders/entities/order.entity';
+import { ProfileImage } from './profile-image.entity';
 
 export enum GenderTypes {
   MALE = 'male',
@@ -62,6 +64,12 @@ export class User {
     nullable: false,
   })
   dateOfBirth: Date;
+
+  @OneToOne(() => ProfileImage, (profileImage) => profileImage.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
+  profileImage: ProfileImage;
 
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];

@@ -7,10 +7,19 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Express } from 'express';
+import type { Multer } from 'multer';
+import { UploadProfileImageDto } from './dto/upload-profile-image.dto';
 
 @Controller('users')
 export class UsersController {
@@ -43,5 +52,22 @@ export class UsersController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);
+  }
+
+  @Post(':id/profile-image')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadProfileImage(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1000000 }),
+          new FileTypeValidator({ fileType: /^image\/(png|jpeg)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.usersService.uploadProfileImage(id, file);
   }
 }

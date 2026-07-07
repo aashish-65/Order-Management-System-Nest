@@ -4,12 +4,15 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from './entities/product.entity';
 import { Repository } from 'typeorm';
+import { ProductImage } from './entities/product-image.entity';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
+    @InjectRepository(ProductImage)
+    private readonly productImageRepository: Repository<ProductImage>,
   ) {}
 
   async create(createProductDto: CreateProductDto) {
@@ -53,5 +56,27 @@ export class ProductsService {
     }
     await this.productRepository.delete(id);
     return { message: 'Product Deleted successfully.' };
+  }
+
+  async addImagesToProduct(id: number, images: Express.Multer.File[]) {
+    const product = await this.productRepository.findOneBy({ id: id });
+    if (!product) {
+      return { message: 'Product not found !!' };
+    }
+
+    const productImageEntities = images.map((image) => {
+      const newProductImage = new ProductImage();
+      newProductImage.data = image.buffer;
+      newProductImage.encoding = image.encoding;
+      newProductImage.filename = image.originalname;
+      newProductImage.mimetype = image.mimetype;
+      newProductImage.size = image.size;
+      newProductImage.product = product;
+      return newProductImage;
+    });
+
+    console.log(productImageEntities);
+    await this.productImageRepository.save(productImageEntities);
+    return { message: 'Image uploaded successfully.' };
   }
 }

@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { OrderItem } from '../../orders/entities/order-item.entity';
+import { ProductImage } from './product-image.entity';
 
 @Entity()
 export class Product {
@@ -27,6 +28,11 @@ export class Product {
     nullable: false,
   })
   description: string;
+
+  @OneToMany(() => ProductImage, (productImage) => productImage.product, {
+    cascade: true,
+  })
+  images: ProductImage[];
 
   @Column({
     type: 'decimal',
