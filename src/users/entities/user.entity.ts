@@ -10,6 +10,8 @@ import {
 } from 'typeorm';
 import { Order } from '../../orders/entities/order.entity';
 import { ProfileImage } from './profile-image.entity';
+import { Wishlist } from '../../wishlists/entities/wishlist.entity';
+import { Cart } from '../../carts/entities/cart.entity';
 
 export enum GenderTypes {
   MALE = 'male',
@@ -67,12 +69,17 @@ export class User {
 
   @OneToOne(() => ProfileImage, (profileImage) => profileImage.user, {
     cascade: true,
-    onDelete: 'CASCADE',
   })
   profileImage: ProfileImage;
 
   @OneToMany(() => Order, (order) => order.user)
   orders: Order[];
+
+  @OneToMany(() => Wishlist, (wishlist) => wishlist.user)
+  wishlists: Wishlist[];
+
+  @OneToOne(() => Cart, (cart) => cart.user, { cascade: true })
+  cart: Cart;
 
   @CreateDateColumn()
   createdAt: Date;

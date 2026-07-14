@@ -12,7 +12,8 @@ import { Type } from 'class-transformer';
 
 export class CreateOrderDto {
   @IsEnum(OrderStatus, {
-    message: 'Status must be one of the following: pending, shipped, delivered',
+    message:
+      'Status must be one of the following: pending, confirmed, processing, shipped, delivered, cancelled',
   })
   @IsOptional()
   status?: OrderStatus = OrderStatus.PENDING;

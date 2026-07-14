@@ -9,6 +9,8 @@ import {
 } from 'typeorm';
 import { OrderItem } from '../../orders/entities/order-item.entity';
 import { ProductImage } from './product-image.entity';
+import { Wishlist } from '../../wishlists/entities/wishlist.entity';
+import { CartItem } from '../../carts/entities/cart-item.entity';
 
 @Entity()
 export class Product {
@@ -52,6 +54,9 @@ export class Product {
   @OneToMany(() => OrderItem, (item) => item.product)
   orderItems: OrderItem[];
 
+  @OneToMany(() => Wishlist, (wishlist) => wishlist.product)
+  wishlists: Wishlist[];
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -60,4 +65,7 @@ export class Product {
 
   @DeleteDateColumn()
   deletedAt: Date;
+
+  @OneToMany(() => CartItem, (cartItem) => cartItem.product)
+  cartItems: CartItem[];
 }

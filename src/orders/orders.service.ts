@@ -1,45 +1,133 @@
-import { Injectable } from '@nestjs/common';
-import { CreateOrderDto } from './dto/create-order.dto';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Order } from './entities/order.entity';
-import { Repository } from 'typeorm';
-import { UsersService } from '../users/users.service';
+import { Order, OrderStatus } from './entities/order.entity';
+import { DataSource, Repository } from 'typeorm';
 import { OrderItem } from './entities/order-item.entity';
-import { ProductsService } from '../products/products.service';
+import { PlaceOrderDto } from './dto/place-order.dto';
+import { CheckoutService } from '../checkout/checkout.service';
+import { Payment, PaymentStatus } from '../payments/entities/payment.entity';
+import { Product } from '../products/entities/product.entity';
+import { CartItem } from '../carts/entities/cart-item.entity';
+import { InvoiceService } from '../invoice/invoice.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
-    @InjectRepository(OrderItem)
-    private readonly orderItemRepositoty: Repository<OrderItem>,
-    private readonly userService: UsersService,
-    private readonly productService: ProductsService,
+    private readonly checkoutService: CheckoutService,
+    private readonly invoiceService: InvoiceService,
+    private readonly dataSource: DataSource,
   ) {}
-  async create(createOrderDto: CreateOrderDto) {
-    const { userId, items, ...orderData } = createOrderDto;
-    const user = await this.userService.findOne(userId);
-    const newItems: OrderItem[] = [];
-    for (let i: number = 0; i < items.length; i++) {
-      const { productId, ...itemData } = items[i];
-      const product = await this.productService.findOne(productId);
+  async placeOrder(userId: number, placeOrderDto: PlaceOrderDto) {
+    const cart = await this.checkoutService.getCartDetails(userId);
 
-      const newItem = this.orderItemRepositoty.create({
-        ...itemData,
-        product: { ...product.data },
+    this.checkoutService.validateCart(cart);
+
+    const { subTotal } = this.checkoutService.prepareCheckoutItems(cart);
+
+    const tax = this.checkoutService.calculateTax(subTotal);
+
+    const shippingCharge =
+      this.checkoutService.calculateShippingCharge(subTotal);
+
+    const grandTotal = this.checkoutService.calculateGrandTotal(
+      subTotal,
+      tax,
+      shippingCharge,
+    );
+
+    //Inside Transaction
+    //1 create Order
+    return await this.dataSource.transaction(async (manager) => {
+      const newOrder = manager.create(Order, {
+        user: cart.user,
+        status: OrderStatus.PENDING,
+        subTotal,
+        tax,
+        shippingCharge,
+        grandTotal,
       });
-      newItems.push(newItem);
-    }
-    let newOrder = this.orderRepository.create({
-      ...orderData,
-      items: newItems,
-      user: { ...user.data },
-    });
+      const savedOrder = await manager.save(newOrder);
 
-    newOrder = await this.orderRepository.save(newOrder);
-    return { message: 'New Order Created', data: newOrder };
+      //2 Create OrderItems
+      const newOrderItems = cart.items.map((item) => {
+        const orderItem = manager.create(OrderItem, {
+          quantity: item.quantity,
+          priceAtPurchase: item.product.price,
+          order: savedOrder,
+          product: item.product,
+        });
+        return orderItem;
+      });
+
+      await manager.save(newOrderItems);
+
+      //3 Create Payment
+      const paymentDetails = manager.create(Payment, {
+        order: savedOrder,
+        amount: grandTotal,
+        provider: placeOrderDto.paymentProvider,
+        paymentMethod: placeOrderDto.paymentMethod,
+        status: PaymentStatus.PENDING,
+      });
+
+      const payment = await manager.save(paymentDetails);
+
+      //4 Link Payement
+      savedOrder.payment = payment;
+      await manager.save(savedOrder);
+
+      //5 Create Invoice
+      const invoice = await this.invoiceService.createInvoice(
+        manager,
+        savedOrder,
+        subTotal,
+        tax,
+        shippingCharge,
+        grandTotal,
+      );
+
+      //6 Reduce Stock
+      const productsToUpdate: Product[] = [];
+      for (const item of cart.items) {
+        const product = await manager.findOne(Product, {
+          where: {
+            id: item.product.id,
+          },
+        });
+
+        if (!product) {
+          throw new NotFoundException(
+            `Product with id ${item.product.id} not found.`,
+          );
+        }
+
+        if (product.stock < item.quantity) {
+          throw new BadRequestException(
+            `${product.name} has only ${product.stock} items left in stock.`,
+          );
+        }
+        product.stock -= item.quantity;
+        productsToUpdate.push(product);
+      }
+
+      await manager.save(Product, productsToUpdate);
+
+      //7 Clear Cart
+      await manager.remove(CartItem, cart.items);
+
+      //8 Return
+      return {
+        message: 'Order placed successfully',
+        orderId: savedOrder.id,
+      };
+    });
   }
 
   async findAll() {

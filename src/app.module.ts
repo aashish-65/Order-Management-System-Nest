@@ -7,6 +7,11 @@ import { ProductsModule } from './products/products.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { appConfig } from './config/app.config';
+import { CartsModule } from './carts/carts.module';
+import { WishlistsModule } from './wishlists/wishlists.module';
+import { PaymentsModule } from './payments/payments.module';
+import { CheckoutModule } from './checkout/checkout.module';
+import { InvoiceModule } from './invoice/invoice.module';
 const ENV = process.env.NODE_ENV;
 @Module({
   imports: [
@@ -36,6 +41,11 @@ const ENV = process.env.NODE_ENV;
         // logging: true,
       }),
     }),
+    CartsModule,
+    WishlistsModule,
+    PaymentsModule,
+    CheckoutModule,
+    InvoiceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

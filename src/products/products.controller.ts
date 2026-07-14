@@ -24,7 +24,6 @@ export class ProductsController {
 
   @Post()
   create(@Body() createProductDto: CreateProductDto) {
-    console.log(createProductDto);
     return this.productsService.create(createProductDto);
   }
 

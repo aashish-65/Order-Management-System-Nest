@@ -5,6 +5,7 @@ import {
   IsString,
   Max,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -32,7 +33,7 @@ export class CreateProductDto {
   price: number;
 
   @IsNumber()
-  @IsPositive()
   @IsNotEmpty()
+  @Min(0)
   stock: number;
 }

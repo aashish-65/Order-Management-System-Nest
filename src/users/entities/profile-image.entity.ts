@@ -48,7 +48,7 @@ export class ProfileImage {
   })
   size: number;
 
-  @OneToOne(() => User, (user) => user.profileImage)
+  @OneToOne(() => User, (user) => user.profileImage, { onDelete: 'CASCADE' })
   @JoinColumn()
   user: User;
 

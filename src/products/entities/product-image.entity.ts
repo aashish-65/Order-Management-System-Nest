@@ -61,3 +61,5 @@ export class ProductImage {
   @DeleteDateColumn()
   deletedAt: Date;
 }
+
+// cart, wishlist, payment(cod), invoice after payment(when api will be called the pdf will be delivered).

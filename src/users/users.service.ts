@@ -1,30 +1,31 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
 import { ProfileImage } from './entities/profile-image.entity';
+import { Cart } from '../carts/entities/cart.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
-    private readonly configService: ConfigService,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @InjectRepository(ProfileImage)
     private readonly profileImageRepository: Repository<ProfileImage>,
   ) {}
   async create(createUserDto: CreateUserDto) {
-    const user = await this.userRepository.findOne({
+    const existingUser = await this.userRepository.findOne({
       where: { email: createUserDto.email },
     });
 
-    if (user) {
-      return { message: 'User with email already exists' };
+    if (existingUser) {
+      throw new ConflictException('User with email already exists');
     }
 
     let newUser = this.userRepository.create(createUserDto);
+
+    newUser.cart = new Cart();
 
     newUser = await this.userRepository.save(newUser);
 
@@ -37,14 +38,6 @@ export class UsersService {
   }
 
   async findOne(id: number) {
-    // console.log('Env Mode : ', this.configService.get('ENV_MODE'));
-    // console.log('DB_TYPE : ', this.configService.get('DB_TYPE'));
-    // console.log('DB_HOST : ', this.configService.get('DB_HOST'));
-    // console.log('DB_PORT : ', this.configService.get('DB_PORT'));
-    // console.log('DB_USERNAME : ', this.configService.get('DB_USERNAME'));
-    // console.log('DB_PASSWORD : ', this.configService.get('DB_PASSWORD'));
-    // console.log('DB_NAME : ', this.configService.get('DB_NAME'));
-    // console.log('NODE_ENV : ', this.configService.get('NODE_ENV'));
     const user = await this.userRepository.findOneBy({ id });
 
     if (!user) {

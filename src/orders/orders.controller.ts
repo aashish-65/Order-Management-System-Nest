@@ -9,16 +9,19 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { PlaceOrderDto } from './dto/place-order.dto';
 
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.create(createOrderDto);
+  @Post(':userId')
+  placeOrder(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body() placeOrderDto: PlaceOrderDto,
+  ) {
+    return this.ordersService.placeOrder(userId, placeOrderDto);
   }
 
   @Get()
